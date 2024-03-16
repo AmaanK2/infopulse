@@ -10,33 +10,30 @@ soup = BeautifulSoup(response.text, 'html.parser')
 # Find all links that might lead to news articles
 articles = soup.find_all('a', href=True)
 
-# Filter the articles to get unique links that contain '/news/'
-news_links = set()
+news = []
 for article in articles:
-    href = article['href']
-    if '/news/' in href and href not in news_links:
-        news_links.add(href)
+    if '/news/' in article['href']:
+        link = 'https://www.cbc.ca' + article['href'] if not article['href'].startswith('http') else article['href']
+        if link not in [n[4] for n in news]:
+            article_page = requests.get(link)
+            article_soup = BeautifulSoup(article_page.text, 'html.parser')
+            print(article_soup)
+            title = article_soup.find('h1').text.strip() if article_soup.find('h1') else 'N/A'
+            category_element = article_soup.find('span', {'class': 'sclt-storySectionLink'})
+            category = category_element.text.strip() if category_element else 'N/A'
+            summary_element = article_soup.find('div', {'class': 'detailSummary'})
+            summary = summary_element.text.strip() if summary_element else 'N/A'
+            image_element = article_soup.find('img')
+            image_link = image_element['src'] if image_element and image_element.has_attr('src') else 'N/A'
 
-news_data = []
-for link in news_links:
-    article_url = link if link.startswith('http') else f'https://www.cbc.ca{link}'
-    article_response = requests.get(article_url)
-    article_soup = BeautifulSoup(article_response.text, 'html.parser')
+            news.append((title, category, summary, image_link, link))
 
-    title = article_soup.find('h1').text.strip() if article_soup.find('h1') else ''
-    category = article_soup.find('a', {'class': 'category'}).text.strip() if article_soup.find('a', {'class': 'category'}) else ''
-    summary = article_soup.find('p').text.strip() if article_soup.find('p') else ''
-    image_link = article_soup.find('img')['src'] if article_soup.find('img') else ''
-
-    news_data.append((title, category, summary, image_link, article_url))
-
-# Specify your desired file path
-csv_file_path = 'cbc_news_items.csv'
+# Assuming you want to write these to a CSV file
+csv_file_path = 'cbc_news_items.csv'  # Specify your desired file path
 
 with open(csv_file_path, mode='w', newline='', encoding='utf-8') as file:
     writer = csv.writer(file)
     writer.writerow(['Title', 'Category', 'Summary', 'Image Link', 'Article Link'])
-    writer.writerows(news_data)
+    writer.writerows(news)
 
 print(f"Saved news items to '{csv_file_path}'")
-
