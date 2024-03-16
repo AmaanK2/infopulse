@@ -31,7 +31,8 @@ for article in articles:
             image = image_placeholder.find('img') if image_placeholder else None
             image_link = image['src'] if image and image.has_attr('src') else 'N/A'
 
-            news.append((title, category, summary, image_link, link))
+            if not (category == 'News' and image_link == 'N/A'):
+                news.append((title, category, summary, image_link, link))
 
 # Assuming you want to write these to a CSV file
 csv_file_path = 'cbc_news_items.csv'  # Specify your desired file path
